@@ -21,135 +21,135 @@ interface CloudflareAdminKeySheetProps {
 
 export const CloudflareAdminKeySheet = observer(
   ({isVisible, onDismiss}: CloudflareAdminKeySheetProps) => {
-  const theme = useTheme();
-  const l10n = useContext(L10nContext);
-  const strings = l10n.settings.cloudflareAdmin;
-  const [key, setKey] = useState('');
-  const [secureTextEntry, setSecureTextEntry] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const [showError, setShowError] = useState(false);
+    const theme = useTheme();
+    const l10n = useContext(L10nContext);
+    const strings = l10n.settings.cloudflareAdmin;
+    const [key, setKey] = useState('');
+    const [secureTextEntry, setSecureTextEntry] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
+    const [showError, setShowError] = useState(false);
 
-  const isKeyLoaded = cloudflareAdminStore.isKeyLoaded;
+    const isKeyLoaded = cloudflareAdminStore.isKeyLoaded;
 
-  useEffect(() => {
-    if (isVisible && isKeyLoaded) {
-      setKey(cloudflareAdminStore.getGatewayKey());
-    }
-  }, [isVisible, isKeyLoaded]);
-
-  const keyFormatValid = /^[A-Za-z0-9._~-]{32,256}$/.test(key.trim());
-
-  const handleSave = async () => {
-    if (!keyFormatValid) {
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const saved = await cloudflareAdminStore.setGatewayKey(key);
-      if (saved) {
-        onDismiss();
-      } else {
-        setShowError(true);
+    useEffect(() => {
+      if (isVisible && isKeyLoaded) {
+        setKey(cloudflareAdminStore.getGatewayKey());
       }
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    }, [isVisible, isKeyLoaded]);
 
-  const handleClear = async () => {
-    setIsClearing(true);
-    try {
-      const cleared = await cloudflareAdminStore.clearGatewayKey();
-      if (cleared) {
-        setKey('');
-        onDismiss();
-      } else {
-        setShowError(true);
+    const keyFormatValid = /^[A-Za-z0-9._~-]{32,256}$/.test(key.trim());
+
+    const handleSave = async () => {
+      if (!keyFormatValid) {
+        return;
       }
-    } finally {
-      setIsClearing(false);
-    }
-  };
+      setIsSaving(true);
+      try {
+        const saved = await cloudflareAdminStore.setGatewayKey(key);
+        if (saved) {
+          onDismiss();
+        } else {
+          setShowError(true);
+        }
+      } finally {
+        setIsSaving(false);
+      }
+    };
 
-  return (
-    <Sheet
-      isVisible={isVisible}
-      onClose={onDismiss}
-      title={strings.keySheetTitle}
-      snapPoints={['50%']}>
-      <Sheet.ScrollView contentContainerStyle={{padding: 16}}>
-        <Text style={{color: theme.colors.onSurfaceVariant, marginBottom: 12}}>
-          {strings.keyDescription}
-        </Text>
-        <TextInput
-          testID="cloudflare-admin-key-input"
-          label={strings.keySheetTitle}
-          value={key}
-          onChangeText={setKey}
-          placeholder={strings.keyInputPlaceholder}
-          autoCapitalize="none"
-          autoCorrect={false}
-          spellCheck={false}
-          secureTextEntry={secureTextEntry}
-          error={key.trim().length > 0 && !keyFormatValid}
-          helperText={
-            key.trim().length > 0 && !keyFormatValid
-              ? strings.keyLengthError
-              : undefined
-          }
-          right={
-            <PaperTextInput.Icon
-              testID="cloudflare-admin-key-visibility"
-              accessibilityLabel={
-                secureTextEntry
-                  ? l10n.settings.internetSearch.showKeyAccessibilityLabel
-                  : l10n.settings.internetSearch.hideKeyAccessibilityLabel
-              }
-              icon={({color}) =>
-                secureTextEntry ? (
-                  <EyeIcon width={24} height={24} stroke={color} />
-                ) : (
-                  <EyeOffIcon width={24} height={24} stroke={color} />
-                )
-              }
-              onPress={() => setSecureTextEntry(value => !value)}
-            />
-          }
-        />
-      </Sheet.ScrollView>
-      <Sheet.Actions>
-        <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 8}}>
-          {cloudflareAdminStore.hasGatewayKey && (
+    const handleClear = async () => {
+      setIsClearing(true);
+      try {
+        const cleared = await cloudflareAdminStore.clearGatewayKey();
+        if (cleared) {
+          setKey('');
+          onDismiss();
+        } else {
+          setShowError(true);
+        }
+      } finally {
+        setIsClearing(false);
+      }
+    };
+
+    return (
+      <Sheet
+        isVisible={isVisible}
+        onClose={onDismiss}
+        title={strings.keySheetTitle}
+        snapPoints={['50%']}>
+        <Sheet.ScrollView contentContainerStyle={{padding: 16}}>
+          <Text style={{color: theme.colors.onSurfaceVariant, marginBottom: 12}}>
+            {strings.keyDescription}
+          </Text>
+          <TextInput
+            testID="cloudflare-admin-key-input"
+            label={strings.keySheetTitle}
+            value={key}
+            onChangeText={setKey}
+            placeholder={strings.keyInputPlaceholder}
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            secureTextEntry={secureTextEntry}
+            error={key.trim().length > 0 && !keyFormatValid}
+            helperText={
+              key.trim().length > 0 && !keyFormatValid
+                ? strings.keyLengthError
+                : undefined
+            }
+            right={
+              <PaperTextInput.Icon
+                testID="cloudflare-admin-key-visibility"
+                accessibilityLabel={
+                  secureTextEntry
+                    ? l10n.settings.internetSearch.showKeyAccessibilityLabel
+                    : l10n.settings.internetSearch.hideKeyAccessibilityLabel
+                }
+                icon={({color}) =>
+                  secureTextEntry ? (
+                    <EyeIcon width={24} height={24} stroke={color} />
+                  ) : (
+                    <EyeOffIcon width={24} height={24} stroke={color} />
+                  )
+                }
+                onPress={() => setSecureTextEntry(value => !value)}
+              />
+            }
+          />
+        </Sheet.ScrollView>
+        <Sheet.Actions>
+          <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 8}}>
+            {cloudflareAdminStore.hasGatewayKey && (
+              <Button
+                mode="text"
+                onPress={handleClear}
+                loading={isClearing}
+                disabled={isSaving || isClearing}>
+                {strings.clearKeyButton}
+              </Button>
+            )}
             <Button
-              mode="text"
-              onPress={handleClear}
-              loading={isClearing}
-              disabled={isSaving || isClearing}>
-              {strings.clearKeyButton}
+              testID="cloudflare-admin-key-save"
+              mode="contained"
+              onPress={handleSave}
+              loading={isSaving}
+              disabled={isSaving || isClearing || !keyFormatValid}>
+              {strings.saveKeyButton}
             </Button>
-          )}
-          <Button
-            testID="cloudflare-admin-key-save"
-            mode="contained"
-            onPress={handleSave}
-            loading={isSaving}
-            disabled={isSaving || isClearing || !keyFormatValid}>
-            {strings.saveKeyButton}
-          </Button>
-        </View>
-      </Sheet.Actions>
-      <Snackbar
-        visible={showError}
-        onDismiss={() => setShowError(false)}
-        duration={3000}
-        action={{
-          label: l10n.common.dismiss,
-          onPress: () => setShowError(false),
-        }}>
-        {strings.keyUpdateError}
-      </Snackbar>
-    </Sheet>
-  );
+          </View>
+        </Sheet.Actions>
+        <Snackbar
+          visible={showError}
+          onDismiss={() => setShowError(false)}
+          duration={3000}
+          action={{
+            label: l10n.common.dismiss,
+            onPress: () => setShowError(false),
+          }}>
+          {strings.keyUpdateError}
+        </Snackbar>
+      </Sheet>
+    );
   },
 );
