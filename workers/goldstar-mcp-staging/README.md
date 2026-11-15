@@ -1,25 +1,75 @@
 # Goldstar MCP Staging
 
-This isolated staging project contains two Cloudflare Workers:
+This repository path contains an isolated staging MCP authorization and resource service. It is not the production L1 Worker and is not a trading-execution interface.
 
-- `auth/`: OAuth 2.1 authorization server, Google OIDC sign-in, owner email allowlist, per-client consent, PKCE and token issuance.
-- `resource/`: Streamable HTTP MCP server. It validates tokens through a Service Binding to the authorization Worker and exposes read-only staging tools.
+## Components
 
-The initial allowlisted Google identity is `goldstar.al.manager@gmail.com`. Google access tokens are not passed to MCP clients or stored in MCP token properties; only the verified subject and basic identity claims are retained.
+- `auth/`: OAuth 2.1 authorization server, Google OpenID Connect sign-in, owner-email allowlist, per-client consent, PKCE, and token issuance.
+- `resource/`: Streamable HTTP MCP resource server. It validates access tokens through a Cloudflare Service Binding to the authorization Worker and exposes tools according to the approved scopes.
+- `OAUTH_KV`: KV namespace used by the authorization server for OAuth state and token records.
+
+The initially allowlisted owner identity is `goldstar.al.manager@gmail.com`. Google ID tokens are verified for signature, issuer, audience, nonce, expiry, verified email, and the owner allowlist. Raw Google tokens are never returned to MCP clients.
+
+## MCP endpoint and scopes
+
+Resource endpoint:
+
+`https://goldstar-mcp-resource-staging.goldstar-al-manager.workers.dev/mcp`
+
+The resource requires `mcp:read`. Additional Google Cloud tools are registered only for the owner and only when the corresponding scope is present:
+
+| Scope | Tools / capability |
+|---|---|
+| `mcp:read` | `goldstar_mcp_status`, `goldstar_authenticated_identity` |
+| `gcp:read` | `gcp_project_info`, `gcp_list_enabled_apis`, `gcp_operation_status` |
+| `gcp:write` | `gcp_enable_api`, subject to the restrictions below |
+| `offline_access` | OAuth refresh-token capability |
+
+### Google Cloud write restriction
+
+The only write-capable tool is `gcp_enable_api`. It is limited to this fixed allowlist:
+
+- `cloudresourcemanager.googleapis.com`
+- `iam.googleapis.com`
+- `iamcredentials.googleapis.com`
+- `serviceusage.googleapis.com`
+- `sts.googleapis.com`
+
+Every call must include the exact confirmation string:
+
+`ENABLE <serviceId> IN personal-ai-manager-00`
+
+The tool rejects services outside the allowlist and rejects any call without that exact confirmation. Enabling services can change project configuration and may enable billable usage. Do not invoke it unless the owner has explicitly approved the exact service and project. A separate Google Cloud IAM policy still governs the service account's effective permissions.
+
+No trade, order-placement, broker, or production execution tool is exposed by this MCP service.
+
+## Configuration
+
+- Auth Worker: `goldstar-mcp-auth-staging`
+- Resource Worker: `goldstar-mcp-resource-staging`
+- Google Cloud project: `personal-ai-manager-00`
+- WIF pool/provider: `goldstar-mcp-staging / cloudflare-goldstar-mcp`
+- Service account: `goldstar-gcp-automation@personal-ai-manager-00.iam.gserviceaccount.com`
+
+The Google OAuth client ID is a non-secret configuration variable in the Worker configuration. The Google OAuth client secret must exist only as the Cloudflare Worker secret `GOOGLE_CLIENT_SECRET`; never commit it to GitHub, source files, logs, or chat. The resource Worker receives Google Cloud configuration through its environment variables and uses a Service Binding to the Auth Worker.
 
 ## Deployment order
 
-1. Deploy `auth/` with the existing `goldstar_mcp_oauth_staging` KV namespace.
-2. Add Worker secrets `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
-3. Register the exact Google OAuth callback URL:
+1. Confirm the Auth Worker's `OAUTH_KV` binding points to the dedicated staging namespace.
+2. Confirm the Auth Worker's `GOOGLE_CLIENT_SECRET` secret is configured in Cloudflare.
+3. Confirm the Google OAuth client has this exact authorized redirect URI:
    `https://goldstar-mcp-auth-staging.goldstar-al-manager.workers.dev/callback`
-4. Deploy `resource/` after the AuthServer service entrypoint is live.
-5. Test OAuth discovery, PKCE, Google identity allowlisting, and MCP tools before entering the resource URL in ChatGPT.
+4. Deploy the Auth Worker from this staging branch.
+5. Confirm the Resource Worker's `AUTH_SERVER` Service Binding targets `goldstar-mcp-auth-staging`.
+6. Deploy the Resource Worker from this staging branch.
+7. Complete the end-to-end authorization, token validation, and MCP tool tests before connecting a client.
 
-## Safety boundary
+Do not change the production branch or route production traffic as part of staging validation.
 
-No production Worker is referenced by either deployment configuration. No MCP write scope or write-capable tool is included. The first release exposes only gateway status and verified identity; additional L1/L2 read operations require separate endpoint and data-scope review.
+## CI and verification limits
 
-## Cloudflare Workers Builds
+The GitHub Actions workflow performs TypeScript checks and Wrangler dry-runs for both Workers. It runs on pushes to this staging branch, relevant pull requests into `main`, and manual workflow dispatch. It does not deploy either Worker.
 
-Each subdirectory is an independent Workers Builds project. Set its root directory to the corresponding `workers/goldstar-mcp-staging/auth` or `workers/goldstar-mcp-staging/resource` path. Use `npm install` (or the platform's automatic dependency install) and `npx wrangler deploy`. Keep the production branch unchanged; deploy from the dedicated `staging/goldstar-mcp-oauth` branch.
+The following have been confirmed in the deployed staging environment: both `/health` endpoints report healthy status, and the authorization-server metadata endpoint returns the expected issuer, endpoints, scopes, and PKCE method.
+
+A successful end-to-end Google authorization-code exchange, refresh-token flow, authenticated MCP request, and Google Cloud WIF/API call have **not** yet been demonstrated. Health and metadata responses alone do not prove those flows. Keep this service in staging until each test is completed and recorded.
