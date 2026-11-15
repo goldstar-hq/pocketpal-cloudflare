@@ -123,7 +123,7 @@ async function getGoogleCloudAccessToken(
   if (!env.GOOGLE_CLIENT_ID || !env.GCP_WIF_AUDIENCE || !env.GCP_SERVICE_ACCOUNT_EMAIL) {
     throw new Error("Google Cloud workload identity settings are incomplete.");
   }
-  if (!isAuthorizedOwner(props, env)) {
+  if (!props || !isAuthorizedOwner(props, env)) {
     throw new Error("The authenticated identity is not the configured Goldstar owner.");
   }
   if (!hasRequiredTokenScopes(context, requiredScopes)) {
