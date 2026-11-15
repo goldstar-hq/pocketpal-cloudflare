@@ -88,6 +88,23 @@ jobs:
       - name: Verify font registration
         run: node scripts/verify-fonts.js
 
+      # Temporary, isolated formatting pass for the new Goldstar Worker files.
+      - name: Format Goldstar staging Worker sources
+        run: >-
+          yarn prettier --write
+          workers/goldstar-mcp-staging/auth/src/index.ts
+          workers/goldstar-mcp-staging/resource/src/index.ts
+
+      - name: Upload formatted Goldstar Worker sources
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: goldstar-worker-prettier-output
+          path: |
+            workers/goldstar-mcp-staging/auth/src/index.ts
+            workers/goldstar-mcp-staging/resource/src/index.ts
+          if-no-files-found: error
+
       # Step 5: Run linters (ESLint)
       - name: Run ESLint
         run: yarn lint
