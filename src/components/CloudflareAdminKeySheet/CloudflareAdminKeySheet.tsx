@@ -79,7 +79,8 @@ export const CloudflareAdminKeySheet = observer(
         title={strings.keySheetTitle}
         snapPoints={['50%']}>
         <Sheet.ScrollView contentContainerStyle={{padding: 16}}>
-          <Text style={{color: theme.colors.onSurfaceVariant, marginBottom: 12}}>
+          <Text
+            style={{color: theme.colors.onSurfaceVariant, marginBottom: 12}}>
             {strings.keyDescription}
           </Text>
           <TextInput
@@ -119,7 +120,8 @@ export const CloudflareAdminKeySheet = observer(
           />
         </Sheet.ScrollView>
         <Sheet.Actions>
-          <View style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 8}}>
+          <View
+            style={{flexDirection: 'row', justifyContent: 'flex-end', gap: 8}}>
             {cloudflareAdminStore.hasGatewayKey && (
               <Button
                 mode="text"
