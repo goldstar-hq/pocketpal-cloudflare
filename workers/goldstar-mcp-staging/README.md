@@ -68,8 +68,8 @@ Do not change the production branch or route production traffic as part of stagi
 
 ## CI and verification limits
 
-The GitHub Actions workflow performs TypeScript checks and Wrangler dry-runs for both Workers. It runs on pushes to this staging branch, relevant pull requests into `main`, and manual workflow dispatch. It does not deploy either Worker.
+The GitHub Actions workflow performs TypeScript checks, Wrangler dry-runs, and live staging smoke tests. On this PR's current branch, the `push` trigger is the available CI trigger. The `pull_request` trigger becomes effective for later PRs after the workflow file exists in the target branch (for example, `main`); manual `workflow_dispatch` likewise requires the workflow to be present on the default branch. The workflow does not deploy either Worker.
 
-The following have been confirmed in the deployed staging environment: both `/health` endpoints report healthy status, and the authorization-server metadata endpoint returns the expected issuer, endpoints, scopes, and PKCE method.
+The live smoke checks verify both deployed `/health` endpoints, OAuth metadata and PKCE S256 support, and rejection of an unauthenticated MCP request with HTTP 401.
 
-A successful end-to-end Google authorization-code exchange, refresh-token flow, authenticated MCP request, and Google Cloud WIF/API call have **not** yet been demonstrated. Health and metadata responses alone do not prove those flows. Keep this service in staging until each test is completed and recorded.
+A successful end-to-end Google authorization-code exchange, refresh-token flow, authenticated MCP request, and Google Cloud WIF/API call have **not** yet been demonstrated. Health, metadata, and unauthenticated-boundary checks alone do not prove those flows. Keep this service in staging until each test is completed and recorded.
