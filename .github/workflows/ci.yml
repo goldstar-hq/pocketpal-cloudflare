@@ -92,6 +92,12 @@ jobs:
       - name: Format Goldstar staging Worker sources
         run: >-
           yarn prettier --write
+          backend/pocketpal-api-v1.js
+          src/components/CloudflareAdminKeySheet/CloudflareAdminKeySheet.tsx
+          src/services/talents/CloudflareAdminClient.ts
+          src/services/talents/CloudflareAdminEngine.ts
+          src/services/talents/__tests__/CloudflareAdminClient.test.ts
+          src/services/talents/__tests__/CloudflareAdminEngine.test.ts
           workers/goldstar-mcp-staging/auth/src/index.ts
           workers/goldstar-mcp-staging/resource/src/index.ts
 
@@ -101,6 +107,12 @@ jobs:
         with:
           name: goldstar-worker-prettier-output
           path: |
+            backend/pocketpal-api-v1.js
+            src/components/CloudflareAdminKeySheet/CloudflareAdminKeySheet.tsx
+            src/services/talents/CloudflareAdminClient.ts
+            src/services/talents/CloudflareAdminEngine.ts
+            src/services/talents/__tests__/CloudflareAdminClient.test.ts
+            src/services/talents/__tests__/CloudflareAdminEngine.test.ts
             workers/goldstar-mcp-staging/auth/src/index.ts
             workers/goldstar-mcp-staging/resource/src/index.ts
           if-no-files-found: error
