@@ -151,5 +151,19 @@ module.exports = {
         'no-restricted-syntax': ['error', AGENT_SETTER],
       },
     },
+    {
+      // The Goldstar gateway module is injected into the L1 Worker after
+      // callFinancial() is defined. These globals are platform APIs or
+      // explicitly supplied dependencies, not accidental unresolved names.
+      files: ['backend/pocketpal-api-v1.js'],
+      env: {es2021: true},
+      globals: {
+        TextEncoder: 'readonly',
+        Response: 'readonly',
+        crypto: 'readonly',
+        sha256Hex: 'readonly',
+        callFinancial: 'readonly',
+      },
+    },
   ],
 };
