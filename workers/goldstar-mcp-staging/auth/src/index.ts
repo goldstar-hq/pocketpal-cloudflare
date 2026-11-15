@@ -457,8 +457,10 @@ export default class AuthServer extends WorkerEntrypoint<Env> {
       return Response.json({
         service: "goldstar-mcp-auth-staging",
         status: "ok",
-        googleConfigured: Boolean(this.env.GOOGLE_CLIENT_ID && this.env.GOOGLE_CLIENT_SECRET),
-        ownerRestricted: true,
+        googleOAuthConfigurationPresent: Boolean(
+          this.env.GOOGLE_CLIENT_ID && this.env.GOOGLE_CLIENT_SECRET,
+        ),
+        ownerRestrictionConfigured: Boolean(this.env.GOLDSTAR_OWNER_EMAIL),
       });
     }
     if (path === "/authorize" && request.method === "GET") {
