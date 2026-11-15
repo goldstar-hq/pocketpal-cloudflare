@@ -130,7 +130,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No formatting changes to commit."
           else
-            git commit -m "style(goldstar): normalize gateway and worker formatting"
+            git commit -m "chore(goldstar): normalize gateway and worker formatting"
             git push origin "HEAD:refs/heads/$GITHUB_HEAD_REF"
           fi
 
