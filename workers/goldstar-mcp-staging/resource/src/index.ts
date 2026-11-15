@@ -13,6 +13,7 @@ interface Env {
   MCP_RESOURCE: string;
   OAUTH_ISSUER: string;
   GOOGLE_CLIENT_ID: string;
+  GOLDSTAR_OWNER_EMAIL: string;
   GCP_PROJECT_ID: string;
   GCP_PROJECT_NUMBER: string;
   GCP_SERVICE_ACCOUNT_EMAIL: string;
@@ -51,7 +52,38 @@ const GCP_ENABLE_API_ALLOWLIST = new Set([
   "serviceusage.googleapis.com",
   "sts.googleapis.com",
 ]);
-const encoder = new TextEncoder();
+function isAuthorizedOwner(
+  props: Partial<GoldstarAuthProps> | undefined,
+  env: Env,
+): boolean {
+  const configuredOwner = env.GOLDSTAR_OWNER_EMAIL?.trim().toLowerCase();
+  return Boolean(
+    configuredOwner &&
+      props?.role === "owner" &&
+      typeof props.email === "string" &&
+      props.email.trim().toLowerCase() === configuredOwner &&
+      props.googleSub,
+  );
+}
+
+interface McpToolContext {
+  http?: {
+    authInfo?: {
+      scopes?: string[];
+    };
+  };
+}
+
+function hasRequiredTokenScopes(
+  context: McpToolContext | undefined,
+  requiredScopes: string[],
+): boolean {
+  const tokenScopes = context?.http?.authInfo?.scopes;
+  return (
+    Array.isArray(tokenScopes) &&
+    requiredScopes.every((scope) => tokenScopes.includes(scope))
+  );
+}
 
 function isGcpFederationConfigured(env: Env): boolean {
   return Boolean(
@@ -85,15 +117,23 @@ function jsonResponse(value: unknown, cacheControl = "no-store"): Response {
 async function getGoogleCloudAccessToken(
   env: Env,
   props: Partial<GoldstarAuthProps> | undefined,
+  context: McpToolContext | undefined,
+  requiredScopes: string[] = ["gcp:read"],
 ): Promise<string> {
   if (!env.GOOGLE_CLIENT_ID || !env.GCP_WIF_AUDIENCE || !env.GCP_SERVICE_ACCOUNT_EMAIL) {
     throw new Error("Google Cloud workload identity settings are incomplete.");
   }
+  if (!isAuthorizedOwner(props, env)) {
+    throw new Error("The authenticated identity is not the configured Goldstar owner.");
+  }
+  if (!hasRequiredTokenScopes(context, requiredScopes)) {
+    throw new Error(
+      "The current MCP access token is missing required scope(s): " +
+        requiredScopes.join(", ") +
+        ".",
+    );
+  }
   if (
-    !props ||
-    props.role !== "owner" ||
-    props.email?.trim().toLowerCase() !== "goldstar.al.manager@gmail.com" ||
-    !props.googleSub ||
     !props.googleIdToken ||
     !Number.isFinite(props.googleIdTokenExpiresAt) ||
     (props.googleIdTokenExpiresAt ?? 0) <= Math.floor(Date.now() / 1000) + 60
@@ -196,11 +236,8 @@ function createServer() {
   const grantedScopes = new Set(
     Array.isArray(props?.grantedScopes) ? props.grantedScopes : [],
   );
-  const isOwner =
-    props?.role === "owner" &&
-    typeof props.email === "string" &&
-    props.email.trim().toLowerCase() === "goldstar.al.manager@gmail.com";
   const bindings = env as unknown as Env;
+  const isOwner = isAuthorizedOwner(props, bindings);
   const gcpConfigured = isGcpFederationConfigured(bindings);
   const googleIdTokenUsable = hasUsableGoogleIdToken(props);
 
@@ -222,7 +259,11 @@ function createServer() {
           typeof (identity as Record<string, unknown>).email === "string"
             ? (identity as Record<string, string>).email
             : null,
-        googleCloudToolsReady: gcpConfigured && googleIdTokenUsable,
+        googleCloudConfigurationPresent: gcpConfigured,
+        googleIdentityTokenAvailable: googleIdTokenUsable,
+        googleCloudFederationStatus: gcpConfigured
+          ? "configured_unverified"
+          : "not_configured",
       });
     },
   );
@@ -251,9 +292,9 @@ function createServer() {
         description: "Read the fixed Goldstar Google Cloud project metadata. This tool cannot select another project.",
         inputSchema: z.object({}),
       },
-      async () => {
+      async (_args, context) => {
         try {
-          const accessToken = await getGoogleCloudAccessToken(bindings, props);
+          const accessToken = await getGoogleCloudAccessToken(bindings, props, context);
           const project = await googleCloudRequest(
             "https://cloudresourcemanager.googleapis.com/v3/projects/" +
               encodeURIComponent(bindings.GCP_PROJECT_NUMBER),
@@ -283,9 +324,9 @@ function createServer() {
           pageToken: z.string().max(2048).optional(),
         }),
       },
-      async ({ pageSize, pageToken }) => {
+      async ({ pageSize, pageToken }, context) => {
         try {
-          const accessToken = await getGoogleCloudAccessToken(bindings, props);
+          const accessToken = await getGoogleCloudAccessToken(bindings, props, context);
           const url = new URL(
             "https://serviceusage.googleapis.com/v1/projects/" +
               encodeURIComponent(bindings.GCP_PROJECT_NUMBER) +
@@ -327,9 +368,9 @@ function createServer() {
             .max(256),
         }),
       },
-      async ({ operationName }) => {
+      async ({ operationName }, context) => {
         try {
-          const accessToken = await getGoogleCloudAccessToken(bindings, props);
+          const accessToken = await getGoogleCloudAccessToken(bindings, props, context);
           const result = await googleCloudRequest(
             "https://serviceusage.googleapis.com/v1/" + operationName,
             accessToken,
@@ -364,7 +405,7 @@ function createServer() {
           confirmation: z.string().max(300),
         }),
       },
-      async ({ serviceId, confirmation }) => {
+      async ({ serviceId, confirmation }, context) => {
         const expected =
           "ENABLE " + serviceId + " IN " + bindings.GCP_PROJECT_ID;
         if (!GCP_ENABLE_API_ALLOWLIST.has(serviceId)) {
@@ -378,7 +419,12 @@ function createServer() {
           );
         }
         try {
-          const accessToken = await getGoogleCloudAccessToken(bindings, props);
+          const accessToken = await getGoogleCloudAccessToken(
+            bindings,
+            props,
+            context,
+            ["gcp:read", "gcp:write"],
+          );
           const result = await googleCloudRequest(
             "https://serviceusage.googleapis.com/v1/projects/" +
               encodeURIComponent(bindings.GCP_PROJECT_NUMBER) +
@@ -443,8 +489,11 @@ export default {
         status: "ok",
         mode: "staging",
         projectId: environment.GCP_PROJECT_ID,
-        googleCloudFederationConfigured: isGcpFederationConfigured(environment),
-        ownerRestricted: true,
+        googleCloudConfigurationPresent: isGcpFederationConfigured(environment),
+        googleCloudFederationStatus: isGcpFederationConfigured(environment)
+          ? "configured_unverified"
+          : "not_configured",
+        ownerRestrictionConfigured: Boolean(environment.GOLDSTAR_OWNER_EMAIL),
       }));
     }
     return resourceServer.fetch(request, environment, ctx);
