@@ -64,13 +64,13 @@ jobs:
 
           const authHealth = await getJson(`${authBase}/health`);
           assert.equal(authHealth.status, "ok");
-          assert.equal(authHealth.googleConfigured, true);
-          assert.equal(authHealth.ownerRestricted, true);
+          assert.equal(authHealth.googleOAuthConfigurationPresent, true);
+          assert.equal(authHealth.ownerRestrictionConfigured, true);
 
           const resourceHealth = await getJson(`${resourceBase}/health`);
           assert.equal(resourceHealth.status, "ok");
-          assert.equal(resourceHealth.googleCloudFederationConfigured, true);
-          assert.equal(resourceHealth.ownerRestricted, true);
+          assert.equal(resourceHealth.googleCloudConfigurationPresent, true);
+          assert.equal(resourceHealth.ownerRestrictionConfigured, true);
 
           const metadata = await getJson(`${authBase}/.well-known/oauth-authorization-server`);
           assert.equal(metadata.issuer, authBase);
