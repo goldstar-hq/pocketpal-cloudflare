@@ -1,5 +1,6 @@
 import React, {useContext, useEffect, useState} from 'react';
 import {View} from 'react-native';
+import {observer} from 'mobx-react';
 import {
   Button,
   Snackbar,
@@ -18,10 +19,8 @@ interface CloudflareAdminKeySheetProps {
   onDismiss: () => void;
 }
 
-export const CloudflareAdminKeySheet: React.FC<CloudflareAdminKeySheetProps> = ({
-  isVisible,
-  onDismiss,
-}) => {
+export const CloudflareAdminKeySheet = observer(
+  ({isVisible, onDismiss}: CloudflareAdminKeySheetProps) => {
   const theme = useTheme();
   const l10n = useContext(L10nContext);
   const strings = l10n.settings.cloudflareAdmin;
@@ -31,11 +30,13 @@ export const CloudflareAdminKeySheet: React.FC<CloudflareAdminKeySheetProps> = (
   const [isClearing, setIsClearing] = useState(false);
   const [showError, setShowError] = useState(false);
 
+  const isKeyLoaded = cloudflareAdminStore.isKeyLoaded;
+
   useEffect(() => {
-    if (isVisible && cloudflareAdminStore.isKeyLoaded) {
+    if (isVisible && isKeyLoaded) {
       setKey(cloudflareAdminStore.getGatewayKey());
     }
-  }, [isVisible, cloudflareAdminStore.isKeyLoaded]);
+  }, [isVisible, isKeyLoaded]);
 
   const keyFormatValid = /^[A-Za-z0-9._~-]{32,256}$/.test(key.trim());
 
@@ -150,4 +151,5 @@ export const CloudflareAdminKeySheet: React.FC<CloudflareAdminKeySheetProps> = (
       </Snackbar>
     </Sheet>
   );
-};
+  },
+);
