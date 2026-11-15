@@ -52,22 +52,11 @@ jobs:
 
   # Job for linting, type checking, unit testing
   build-and-test:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
       # Step 1: Check out the repository
       - name: Check out code
         uses: actions/checkout@v3
-
-      # For same-repository PRs, format and commit only the explicitly listed
-      # Goldstar files on the PR head branch (not GitHub's synthetic merge ref).
-      - name: Check out PR head for scoped formatting
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          set -euo pipefail
-          git fetch --no-tags origin "refs/heads/$GITHUB_HEAD_REF:refs/remotes/origin/$GITHUB_HEAD_REF" --depth=1
-          git checkout -B "$GITHUB_HEAD_REF" "refs/remotes/origin/$GITHUB_HEAD_REF"
 
       # Cache node_modules
       - name: Cache node_modules
@@ -98,57 +87,6 @@ jobs:
       # be bundled on iOS + Android + listed in Info.plist UIAppFonts).
       - name: Verify font registration
         run: node scripts/verify-fonts.js
-
-      # Temporary, isolated formatting pass for the new Goldstar Worker files.
-      - name: Format Goldstar staging Worker sources
-        run: >-
-          yarn prettier --write
-          backend/pocketpal-api-v1.js
-          src/components/CloudflareAdminKeySheet/CloudflareAdminKeySheet.tsx
-          src/services/talents/CloudflareAdminClient.ts
-          src/services/talents/CloudflareAdminEngine.ts
-          src/services/talents/__tests__/CloudflareAdminClient.test.ts
-          src/services/talents/__tests__/CloudflareAdminEngine.test.ts
-          workers/goldstar-mcp-staging/auth/src/index.ts
-          workers/goldstar-mcp-staging/resource/src/index.ts
-
-      - name: Commit scoped Goldstar formatting changes
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            backend/pocketpal-api-v1.js \
-            src/components/CloudflareAdminKeySheet/CloudflareAdminKeySheet.tsx \
-            src/services/talents/CloudflareAdminClient.ts \
-            src/services/talents/CloudflareAdminEngine.ts \
-            src/services/talents/__tests__/CloudflareAdminClient.test.ts \
-            src/services/talents/__tests__/CloudflareAdminEngine.test.ts \
-            workers/goldstar-mcp-staging/auth/src/index.ts \
-            workers/goldstar-mcp-staging/resource/src/index.ts
-          if git diff --cached --quiet; then
-            echo "No formatting changes to commit."
-          else
-            git commit -m "chore(goldstar): normalize gateway and worker formatting"
-            git push origin "HEAD:refs/heads/$GITHUB_HEAD_REF"
-          fi
-
-      - name: Upload formatted Goldstar Worker sources
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: goldstar-worker-prettier-output
-          path: |
-            backend/pocketpal-api-v1.js
-            src/components/CloudflareAdminKeySheet/CloudflareAdminKeySheet.tsx
-            src/services/talents/CloudflareAdminClient.ts
-            src/services/talents/CloudflareAdminEngine.ts
-            src/services/talents/__tests__/CloudflareAdminClient.test.ts
-            src/services/talents/__tests__/CloudflareAdminEngine.test.ts
-            workers/goldstar-mcp-staging/auth/src/index.ts
-            workers/goldstar-mcp-staging/resource/src/index.ts
-          if-no-files-found: error
 
       # Step 5: Run linters (ESLint)
       - name: Run ESLint
