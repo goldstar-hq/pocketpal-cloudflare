@@ -16,7 +16,7 @@ Resource endpoint:
 
 `https://goldstar-mcp-resource-staging.goldstar-al-manager.workers.dev/mcp`
 
-The resource requires `mcp:read`. Additional Google Cloud tools are registered only for the owner and only when the corresponding scope is present:
+The resource requires `mcp:read`. Additional Google Cloud tools are registered only for the configured owner and only when the stored consent includes the relevant scope. Every GCP tool callback also checks the **verified scopes on the current access token** through the MCP request context before requesting a Google Cloud token. Stored consent metadata is not treated as proof that the current access token still carries that permission.
 
 | Scope | Tools / capability |
 |---|---|
@@ -71,5 +71,9 @@ Do not change the production branch or route production traffic as part of stagi
 The GitHub Actions workflow performs TypeScript checks, Wrangler dry-runs, and live staging smoke tests. On this PR's current branch, the `push` trigger is the available CI trigger. The `pull_request` trigger becomes effective for later PRs after the workflow file exists in the target branch (for example, `main`); manual `workflow_dispatch` likewise requires the workflow to be present on the default branch. The workflow does not deploy either Worker.
 
 The live smoke checks verify both deployed `/health` endpoints, OAuth metadata and PKCE S256 support, and rejection of an unauthenticated MCP request with HTTP 401.
+
+The health endpoints now report configuration presence and explicitly label WIF as `configured_unverified`; they do not claim that a real STS exchange or service-account impersonation has succeeded.
+
+**Outstanding WIF check:** the Google ID token issued by the OAuth client normally has the OAuth client ID in its `aud` claim. Google STS separately receives the WIF provider resource as the requested audience. The provider's `allowedAudiences` must accept the subject token's actual `aud` claim, or STS will reject the exchange. Verify the provider configuration before treating GCP federation as operational.
 
 A successful end-to-end Google authorization-code exchange, refresh-token flow, authenticated MCP request, and Google Cloud WIF/API call have **not** yet been demonstrated. Health, metadata, and unauthenticated-boundary checks alone do not prove those flows. Keep this service in staging until each test is completed and recorded.
