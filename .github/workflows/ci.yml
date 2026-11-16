@@ -100,6 +100,27 @@ jobs:
       - name: Run unit tests
         run: yarn test --coverage
 
+  # Independent governance data-contract gate; does not depend on app lint/build jobs.
+  org-registry-integrity:
+    name: Organization Registry Integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: Syntax-check validator
+        run: node --check governance/org-registry/scripts/validate-registry.mjs
+      - name: Parse the versioned JSON contract
+        run: node -e "JSON.parse(require('node:fs').readFileSync('governance/org-registry/schema/registry.schema.json', 'utf8'))"
+      - name: Run governance regression tests
+        run: node --test governance/org-registry/test/*.test.mjs
+      - name: Validate synthetic registry fixture
+        run: node governance/org-registry/scripts/validate-registry.mjs governance/org-registry/fixtures/valid-registry.json
+
   # Render-count comparison of the PR merge commit against its base (main).
   # Restores the shared node_modules cache but never saves it: this job installs
   # other commits' dependencies and skips llama.rn's native postinstall.
