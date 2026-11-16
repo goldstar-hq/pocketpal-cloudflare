@@ -61,6 +61,12 @@ test("requires explicit level-3 specialist or manager classification", () => {
   assertInvalid(registry, "positionKind does not match level 3");
 });
 
+test("requires level-3 agents to belong to level-2 domain units", () => {
+  const registry = clone();
+  registry.agents.find(agent => agent.id === "alpha-specialist").unitId = "central";
+  assertInvalid(registry, "must belong to a level-2 domain unit");
+});
+
 test("rejects cross-domain peer access", () => {
   const registry = clone();
   registry.connections.push({
