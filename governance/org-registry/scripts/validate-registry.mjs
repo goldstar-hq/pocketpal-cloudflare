@@ -191,6 +191,10 @@ function validateRegistry(registry) {
     agent => agent?.level === 3 && agent?.positionKind === "l3_manager",
   );
   for (const agent of registry.agents.filter(item => item?.level === 3)) {
+    const domainUnit = unitById.get(agent.unitId);
+    if (domainUnit && (domainUnit.level !== 2 || domainUnit.kind !== "domain")) {
+      errors.push('level-3 agent "' + agent.id + '": must belong to a level-2 domain unit');
+    }
     const parent = agentById.get(agent.reportsTo);
     if (!parent || ![2, 3].includes(parent.level)) {
       errors.push('level-3 agent "' + agent.id + '": reporting manager does not exist');
