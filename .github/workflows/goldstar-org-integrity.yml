@@ -1,26 +1,16 @@
 name: Organization Registry Integrity
 
-on:
+'on':
   push:
     branches:
       - staging/goldstar-org-data-integrity
-    paths:
-      - "governance/org-registry/**"
-      - ".github/workflows/goldstar-org-integrity.yml"
   pull_request:
     branches:
       - main
-    paths:
-      - "governance/org-registry/**"
-      - ".github/workflows/goldstar-org-integrity.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: org-registry-integrity
-  cancel-in-progress: true
 
 jobs:
   validate:
