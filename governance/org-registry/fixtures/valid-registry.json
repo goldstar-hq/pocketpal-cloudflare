@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "units": [
+    { "id": "root", "level": 0, "parentId": null, "kind": "root" },
+    { "id": "central", "level": 1, "parentId": "root", "kind": "core" },
+    { "id": "domain-alpha", "level": 2, "parentId": "root", "kind": "domain" },
+    { "id": "domain-beta", "level": 2, "parentId": "root", "kind": "domain" }
+  ],
+  "agents": [
+    {
+      "id": "owner",
+      "level": 0,
+      "unitId": "root",
+      "reportsTo": null,
+      "positionKind": "human_owner",
+      "status": "active",
+      "managerOf": []
+    },
+    {
+      "id": "central-manager",
+      "level": 1,
+      "unitId": "central",
+      "reportsTo": "owner",
+      "positionKind": "l1_manager",
+      "status": "defined",
+      "managerOf": []
+    },
+    {
+      "id": "alpha-manager",
+      "level": 2,
+      "unitId": "domain-alpha",
+      "reportsTo": "central-manager",
+      "positionKind": "l2_manager",
+      "status": "defined",
+      "managerOf": []
+    },
+    {
+      "id": "beta-manager",
+      "level": 2,
+      "unitId": "domain-beta",
+      "reportsTo": "central-manager",
+      "positionKind": "l2_manager",
+      "status": "planned",
+      "managerOf": []
+    },
+    {
+      "id": "alpha-specialist",
+      "level": 3,
+      "unitId": "domain-alpha",
+      "reportsTo": "alpha-manager",
+      "positionKind": "l3_specialist",
+      "status": "defined",
+      "managerOf": []
+    },
+    {
+      "id": "beta-specialist",
+      "level": 3,
+      "unitId": "domain-beta",
+      "reportsTo": "beta-manager",
+      "positionKind": "l3_specialist",
+      "status": "planned",
+      "managerOf": []
+    }
+  ],
+  "connections": [
+    { "from": "central-manager", "to": "alpha-manager", "kind": "communication" },
+    { "from": "alpha-manager", "to": "alpha-specialist", "kind": "delegation" },
+    { "from": "beta-manager", "to": "beta-specialist", "kind": "knowledge" }
+  ],
+  "assignments": [
+    {
+      "sourceAgentId": "central-manager",
+      "targetAgentId": "alpha-specialist",
+      "notifyTargetManager": true
+    }
+  ],
+  "policies": [
+    {
+      "code": "deny-secret-actions",
+      "priority": 0,
+      "decision": "deny",
+      "domainCondition": "any",
+      "actionSet": ["secret.read", "secret.export"],
+      "sourceLevels": [0, 1, 2, 3],
+      "targetLevels": [0, 1, 2, 3]
+    },
+    {
+      "code": "approve-sensitive-actions",
+      "priority": 1,
+      "decision": "approval_required",
+      "domainCondition": "any",
+      "actionSet": ["policy.change", "production.deploy"],
+      "sourceLevels": [0, 1, 2, 3],
+      "targetLevels": [0, 1, 2, 3]
+    },
+    {
+      "code": "same-domain-coordination",
+      "priority": 10,
+      "decision": "allow",
+      "domainCondition": "same",
+      "actionSet": ["communicate", "share_information"],
+      "sourceLevels": [2, 3],
+      "targetLevels": [2, 3]
+    }
+  ],
+  "forbiddenActions": ["secret.read", "secret.export"],
+  "sensitiveActions": ["policy.change", "production.deploy"]
+}
