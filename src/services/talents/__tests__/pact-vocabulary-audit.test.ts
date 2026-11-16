@@ -142,8 +142,9 @@ describe('PACT vocabulary audit', () => {
       // registerDefaultTalents internally.
       expect(talentRegistry.has('render_html')).toBe(false);
       const schemas = deriveToolSchemas();
-      expect(schemas).toHaveLength(5);
+      expect(schemas).toHaveLength(6);
       expect(talentRegistry.has('render_html')).toBe(true);
+      expect(talentRegistry.has('cloudflare_admin')).toBe(true);
     });
   });
 });
