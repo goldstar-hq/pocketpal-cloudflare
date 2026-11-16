@@ -39,7 +39,11 @@ export function redactSensitiveFields(value: unknown): unknown {
   if (value && typeof value === 'object') {
     const output: Record<string, unknown> = {};
     for (const [key, child] of Object.entries(value)) {
-      if (/(token|secret|password|api[_-]?key|bridge[_-]?key|private[_-]?key|app[_-]?key|access[_-]?key|authorization|credential)/i.test(key)) {
+      if (
+        /(token|secret|password|api[_-]?key|bridge[_-]?key|private[_-]?key|app[_-]?key|access[_-]?key|authorization|credential)/i.test(
+          key,
+        )
+      ) {
         output[key] = '[REDACTED]';
       } else {
         output[key] = redactSensitiveFields(child);
@@ -50,7 +54,10 @@ export function redactSensitiveFields(value: unknown): unknown {
   if (typeof value === 'string') {
     return value
       .replace(/Bearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [REDACTED]')
-      .replace(/(api[_-]?key|bridge[_-]?key|private[_-]?key|app[_-]?key|access[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi, '$1=[REDACTED]');
+      .replace(
+        /(api[_-]?key|bridge[_-]?key|private[_-]?key|app[_-]?key|access[_-]?key|token|secret)\s*[:=]\s*[^\s,;]+/gi,
+        '$1=[REDACTED]',
+      );
   }
   return value;
 }

@@ -32,13 +32,14 @@ describe('deriveToolSchemas strict-subset filtering', () => {
 
   it('returns all schemas when talentNames is undefined', () => {
     const schemas = deriveToolSchemas();
-    expect(schemas).toHaveLength(5);
+    expect(schemas).toHaveLength(6);
   });
 
   it('includes the internet-search talents in the full set', () => {
     const names = deriveToolSchemas().map(s => s.function.name);
     expect(names).toContain('web_search');
     expect(names).toContain('read_url');
+    expect(names).toContain('cloudflare_admin');
   });
 
   it('ignores unknown names and returns only matched ones', () => {

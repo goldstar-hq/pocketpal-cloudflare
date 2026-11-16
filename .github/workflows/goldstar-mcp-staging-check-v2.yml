@@ -1,0 +1,112 @@
+name: Goldstar MCP Staging CI
+
+on:
+  push:
+    branches:
+      - staging/goldstar-mcp-oauth
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/goldstar-mcp-staging-check-v2.yml"
+      - "workers/goldstar-mcp-staging/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging-checks:
+    name: Validate Auth and Resource Workers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout staging source
+        uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install Auth Worker dependencies
+        working-directory: workers/goldstar-mcp-staging/auth
+        run: npm install --no-audit --no-fund
+      - name: Type-check Auth Worker
+        working-directory: workers/goldstar-mcp-staging/auth
+        run: npm run type-check
+      - name: Dry-run Auth Worker
+        working-directory: workers/goldstar-mcp-staging/auth
+        run: npx wrangler deploy --dry-run --outdir=.wrangler-dry-run
+
+      - name: Install Resource Worker dependencies
+        working-directory: workers/goldstar-mcp-staging/resource
+        run: npm install --no-audit --no-fund
+      - name: Type-check Resource Worker
+        working-directory: workers/goldstar-mcp-staging/resource
+        run: npm run type-check
+      - name: Dry-run Resource Worker
+        working-directory: workers/goldstar-mcp-staging/resource
+        run: npx wrangler deploy --dry-run --outdir=.wrangler-dry-run
+
+      - name: Live staging health, OAuth metadata, and unauthenticated MCP boundary
+        working-directory: .
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+
+          const authBase = "https://goldstar-mcp-auth-staging.goldstar-al-manager.workers.dev";
+          const resourceBase = "https://goldstar-mcp-resource-staging.goldstar-al-manager.workers.dev";
+
+          async function getJson(url, expectedStatus = 200) {
+            const response = await fetch(url, { headers: { accept: "application/json" } });
+            assert.equal(response.status, expectedStatus, `${url} returned HTTP ${response.status}`);
+            return response.json();
+          }
+
+          const authHealth = await getJson(`${authBase}/health`);
+          assert.equal(authHealth.status, "ok");
+          assert.equal(authHealth.googleOAuthConfigurationPresent, true);
+          assert.equal(authHealth.ownerRestrictionConfigured, true);
+
+          const resourceHealth = await getJson(`${resourceBase}/health`);
+          assert.equal(resourceHealth.status, "ok");
+          assert.equal(resourceHealth.googleCloudConfigurationPresent, true);
+          assert.equal(resourceHealth.ownerRestrictionConfigured, true);
+
+          const metadata = await getJson(`${authBase}/.well-known/oauth-authorization-server`);
+          assert.equal(metadata.issuer, authBase);
+          assert.equal(metadata.authorization_endpoint, `${authBase}/authorize`);
+          assert.equal(metadata.token_endpoint, `${authBase}/oauth/token`);
+          assert.ok(metadata.code_challenge_methods_supported?.includes("S256"));
+          assert.ok(metadata.scopes_supported?.includes("mcp:read"));
+          assert.ok(metadata.scopes_supported?.includes("gcp:read"));
+
+          const unauthorized = await fetch(`${resourceBase}/mcp`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              accept: "application/json, text/event-stream"
+            },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method: "initialize",
+              params: {
+                protocolVersion: "2025-06-18",
+                capabilities: {},
+                clientInfo: { name: "goldstar-staging-ci", version: "1.0.0" }
+              }
+            })
+          });
+          assert.equal(unauthorized.status, 401, `Unauthenticated MCP request returned HTTP ${unauthorized.status}, expected 401`);
+
+          console.log(JSON.stringify({
+            result: "passed",
+            checks: [
+              "auth health",
+              "resource health",
+              "OAuth metadata and PKCE S256",
+              "unauthenticated MCP request rejected with HTTP 401"
+            ],
+            wwwAuthenticatePresent: Boolean(unauthorized.headers.get("www-authenticate"))
+          }, null, 2));
+          NODE

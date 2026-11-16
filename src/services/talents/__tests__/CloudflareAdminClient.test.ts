@@ -25,7 +25,13 @@ describe('CloudflareAdminClient', () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
-      text: async () => JSON.stringify({ok: true, manager: 'level1', operation: 'status', data: {status: 'ok'}}),
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          manager: 'level1',
+          operation: 'status',
+          data: {status: 'ok'},
+        }),
     });
 
     const client = new CloudflareAdminClient(credentialStore);
@@ -39,7 +45,11 @@ describe('CloudflareAdminClient', () => {
           Authorization: 'Bearer test-gateway-key',
           'Content-Type': 'application/json',
         }),
-        body: JSON.stringify({manager: 'level1', operation: 'status', args: {}}),
+        body: JSON.stringify({
+          manager: 'level1',
+          operation: 'status',
+          args: {},
+        }),
       }),
     );
     expect(result).toEqual({status: 'ok'});

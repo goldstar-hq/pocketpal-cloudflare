@@ -193,7 +193,8 @@ export class CloudflareAdminEngine implements TalentEngine {
             manager: {
               type: 'string',
               enum: ['level1', 'level2'],
-              description: 'level1 = personal-ai-manager; level2 = financial manager.',
+              description:
+                'level1 = personal-ai-manager; level2 = financial manager.',
             },
             operation: {
               type: 'string',

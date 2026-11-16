@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "goldstar-mcp-resource-staging",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-13",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "preview_urls": false,
+  "services": [
+    {
+      "binding": "AUTH_SERVER",
+      "service": "goldstar-mcp-auth-staging"
+    }
+  ],
+  "vars": {
+    "MCP_RESOURCE": "https://goldstar-mcp-resource-staging.goldstar-al-manager.workers.dev/mcp",
+    "OAUTH_ISSUER": "https://goldstar-mcp-auth-staging.goldstar-al-manager.workers.dev",
+    "GCP_PROJECT_ID": "personal-ai-manager-00",
+    "GCP_PROJECT_NUMBER": "936893789096",
+    "GCP_SERVICE_ACCOUNT_EMAIL": "goldstar-gcp-automation@personal-ai-manager-00.iam.gserviceaccount.com",
+    "GCP_WIF_AUDIENCE": "//iam.googleapis.com/projects/936893789096/locations/global/workloadIdentityPools/goldstar-mcp-staging/providers/cloudflare-goldstar-mcp",
+    "GOOGLE_CLIENT_ID": "936893789096-055e0f7pgjop7bnm3984khupa6hg1501.apps.googleusercontent.com",
+    "GOLDSTAR_OWNER_EMAIL": "goldstar.al.manager@gmail.com"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
+}
