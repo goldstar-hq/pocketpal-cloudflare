@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://goldstar-hq.github.io/pocketpal-cloudflare/governance/org-registry/schema/registry.schema.json",
+  "title": "Organization Registry Snapshot",
+  "description": "Generic, non-production contract for validating organizational hierarchy and governance data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "units", "agents", "connections", "assignments", "policies", "forbiddenActions", "sensitiveActions"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "units": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/unit" } },
+    "agents": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/agent" } },
+    "connections": { "type": "array", "items": { "$ref": "#/$defs/connection" } },
+    "assignments": { "type": "array", "items": { "$ref": "#/$defs/assignment" } },
+    "policies": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/policy" } },
+    "forbiddenActions": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "sensitiveActions": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$" },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "level", "parentId", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "level": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "parentId": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "kind": { "enum": ["root", "core", "domain"] }
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "level", "unitId", "reportsTo", "positionKind", "status", "managerOf"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "level": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "unitId": { "$ref": "#/$defs/identifier" },
+        "reportsTo": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/identifier" }] },
+        "positionKind": { "enum": ["human_owner", "l1_manager", "l2_manager", "l3_specialist", "l3_manager"] },
+        "status": { "enum": ["active", "defined", "planned", "suspended", "retired"] },
+        "managerOf": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } }
+      }
+    },
+    "connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "kind"],
+      "properties": {
+        "from": { "$ref": "#/$defs/identifier" },
+        "to": { "$ref": "#/$defs/identifier" },
+        "kind": { "enum": ["communication", "delegation", "knowledge"] }
+      }
+    },
+    "assignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceAgentId", "targetAgentId", "notifyTargetManager"],
+      "properties": {
+        "sourceAgentId": { "$ref": "#/$defs/identifier" },
+        "targetAgentId": { "$ref": "#/$defs/identifier" },
+        "notifyTargetManager": { "type": "boolean" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "priority", "decision", "domainCondition", "actionSet", "sourceLevels", "targetLevels"],
+      "properties": {
+        "code": { "$ref": "#/$defs/identifier" },
+        "priority": { "type": "integer", "minimum": 0 },
+        "decision": { "enum": ["allow", "deny", "approval_required"] },
+        "domainCondition": { "enum": ["any", "same", "different"] },
+        "actionSet": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+        "sourceLevels": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 0, "maximum": 3 } },
+        "targetLevels": { "type": "array", "uniqueItems": true, "items": { "type": "integer", "minimum": 0, "maximum": 3 } }
+      }
+    }
+  }
+}
