@@ -9,6 +9,7 @@ It deliberately contains only synthetic identifiers and generic roles. It does n
 - A single human authority at level 0 and a single central manager at level 1.
 - Formal reporting: level 1 reports to level 0; each level-2 domain manager reports to level 1; level-3 members report within their own domain.
 - Exactly one level-2 manager for each domain unit.
+- Every level-3 member belongs to a level-2 domain unit, and reports within that same domain.
 - Explicit level-3 role classification (l3_specialist or l3_manager); manager assignments must be reciprocal and same-domain.
 - Unique identities, unit references, and acyclic unit-parent relationships.
 - No direct cross-domain communication or delegation between level-2/level-3 actors.
